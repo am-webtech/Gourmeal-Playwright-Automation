@@ -1,0 +1,23 @@
+{
+  "name": "gourmeal-automation",
+  "version": "1.0.0",
+  "description": "Playwright + TypeScript test automation framework for a multi-role web app (superadmin/admin/vendor), featuring Page Object Model, role-based auth fixtures, and Excel-based test data handling.",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:auth": "playwright test tests/auth/login.spec.ts",
+    "test:headed": "playwright test --headed"
+  },
+  "keywords": ["playwright", "typescript", "automation", "testing", "ci-cd", "page-object-model"],
+  "author": "AmWebTech",
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^25.6.0",
+    "dotenv": "^17.4.2"
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  }
+}

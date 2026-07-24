@@ -1,0 +1,45 @@
+{
+  "cookies": [
+    {
+      "name": "gourmeal_session",
+      "value": "REDACTED - Due to confidentiality this value has not been shared",
+      "domain": "dev-admin.gourmeals.io",
+      "path": "/",
+      "expires": 0,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "XSRF-TOKEN",
+      "value": "REDACTED - Due to confidentiality this value has not been shared",
+      "domain": "dev-admin.gourmeals.io",
+      "path": "/",
+      "expires": 0,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "firebase_token",
+      "value": "REDACTED - Due to confidentiality this value has not been shared",
+      "domain": "dev-admin.gourmeals.io",
+      "path": "/",
+      "expires": 0,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "https://dev-admin.gourmeals.io",
+      "localStorage": [
+        {
+          "name": "lastLoginEmail",
+          "value": "REDACTED - Due to confidentiality this value has not been shared"
+        }
+      ]
+    }
+  ]
+}

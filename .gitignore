@@ -1,0 +1,19 @@
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# Note: config/env/.env.dev and playwright/.auth/*.json ARE tracked in this repo,
+# but contain redacted placeholder values only - see README Security Note.
+
+# IDE / editor
+.cursor/
+.vscode/
+.idea/
+
+# System files
+.DS_Store
+Thumbs.db
