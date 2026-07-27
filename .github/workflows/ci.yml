@@ -1,26 +1,24 @@
-name: Playwright Tests
+name: BRS Test Suite
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      Environment:
+        description: "Which environment will be executed"
+        required: true
+        type: choice
+        default: prod
+        options: ["staging", "prod"]
+      tags:
+        description: "Test tag to run (without @)"
+        required: false
+        type: string
 
 jobs:
   test:
-    timeout-minutes: 30
-    runs-on: ubuntu-latest
-
+    runs-on: windows-latest
     env:
-      TEST_ENV: dev
-      CI: true
-      BASE_URL: ${{ secrets.BASE_URL }}
-      SUPERADMIN_EMAIL: ${{ secrets.SUPERADMIN_EMAIL }}
-      SUPERADMIN_PASSWORD: ${{ secrets.SUPERADMIN_PASSWORD }}
-      ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
-      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-      VENDOR_EMAIL: ${{ secrets.VENDOR_EMAIL }}
-      VENDOR_PASSWORD: ${{ secrets.VENDOR_PASSWORD }}
+      TEST_ENV: ${{ github.event.inputs.Environment || 'prod' }}
 
     steps:
       - name: Checkout code
@@ -29,21 +27,112 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "20.x"
+
+      - name: Debug - Environment Variables
+        shell: pwsh
+        run: |
+          echo "Selected Environment: $env:TEST_ENV"
 
       - name: Install dependencies
-        run: npm ci
+        shell: pwsh
+        run: |
+          if (-not (Test-Path -Path "package-lock.json")) {
+            npm install
+          } else {
+            npm ci
+          }
+          npx playwright install --with-deps
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+      - name: Run all tests (no tag specified)
+        if: ${{ github.event.inputs.tags == '' || github.event_name != 'workflow_dispatch' }}
+        shell: pwsh
+        run: |
+          npx cucumber-js --format html:reports/cucumber-report.html --format json:reports/cucumber-report.json
+          $exitCode = $LASTEXITCODE
+          npm run report
+          exit $exitCode
+        env:
+          CI: true
+          TEST_ENV: ${{ env.TEST_ENV }}
 
-      - name: Run Playwright tests
-        run: npx playwright test
+      - name: Run tests with specific tag
+        if: ${{ github.event.inputs.tags != '' && github.event_name == 'workflow_dispatch' }}
+        shell: pwsh
+        run: |
+          npx cucumber-js --tags "@${{ github.event.inputs.tags }}" --parallel 4 --format html:reports/cucumber-report.html --format json:reports/cucumber-report.json
+          $exitCode = $LASTEXITCODE
+          npm run report
+          exit $exitCode
+        env:
+          CI: true
+          TEST_ENV: ${{ env.TEST_ENV }}
 
-      - name: Upload Playwright report
+      - name: Generate Test Summary Report
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path -Path "reports/cucumber-report.json") {
+            node generate-summary.js
+          } else {
+            Write-Host "Warning: reports/cucumber-report.json not found. Skipping summary generation."
+          }
+
+      - name: Report Location Information
+        if: always()
+        shell: pwsh
+        run: |
+          Write-Host "\n============================================="
+          Write-Host "TEST REPORT LOCATIONS:"
+          Write-Host "============================================="
+          Write-Host "HTML Report: $PWD/test-reports/index.html"
+          Write-Host "JSON Report: $PWD/reports/cucumber-report.json"
+          Write-Host "=============================================\n"
+
+          @"
+          TEST REPORT LOCATIONS:
+          =============================================
+          HTML Report: $PWD/test-reports/index.html
+          JSON Report: $PWD/reports/cucumber-report.json
+          =============================================
+          "@ | Out-File -FilePath "report-locations.txt"
+
+      - name: Debug - List report files
+        shell: pwsh
+        run: |
+          Write-Host "Listing all files in reports/"
+          Get-ChildItem -Recurse reports
+
+      - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
-          path: playwright-report/
+          name: test-results-${{ github.run_id }}-${{ env.TEST_ENV }}
+          path: |
+            reports/**
+            test-reports/**
+            cucumber-report.html
+            cucumber-report.json
           retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload report locations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: report-locations-${{ github.run_id }}-${{ env.TEST_ENV }}
+          path: report-locations.txt
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Upload Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces-${{ github.run_id }}-${{ env.TEST_ENV }}
+          path: |
+            reports/traces/
+            reports/screenshots/
+          retention-days: 30
+          if-no-files-found: ignore
+
